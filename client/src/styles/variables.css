@@ -1,0 +1,156 @@
+/* ==========================================================================
+   Design System — CSS Custom Properties
+   Portfolio of Vinit Kumar Mandal
+   Modern Skeuomorphic · Premium Editorial
+   ========================================================================== */
+
+:root {
+  /* ── Color Palette: Light Theme (default) ────────────────────────────── */
+  --color-bg:              #F5F3EE;
+  --color-surface:         #FFFFFF;
+  --color-surface-secondary:#EDE9E3;
+  --color-text:            #252525;
+  --color-text-secondary:  #6B7280;
+  --color-text-tertiary:   #9CA3AF;
+  --color-accent:          #4A6FA5;
+  --color-accent-hover:    #3D5E8C;
+  --color-accent-light:    rgba(74, 111, 165, 0.10);
+  --color-accent-subtle:   rgba(74, 111, 165, 0.06);
+  --color-border:          #E5E2DC;
+  --color-border-strong:   #D1CEC7;
+  --color-success:         #3D8B5F;
+  --color-success-light:   rgba(61, 139, 95, 0.10);
+  --color-warning:         #C4841D;
+  --color-warning-light:   rgba(196, 132, 29, 0.10);
+  --color-error:           #C0392B;
+  --color-error-light:     rgba(192, 57, 43, 0.10);
+  --color-overlay:         rgba(37, 37, 37, 0.45);
+
+  /* ── Shadows: Skeuomorphic Depth System ──────────────────────────────── */
+  --shadow-raised:    0 2px 8px rgba(0, 0, 0, 0.08),
+                      0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-elevated:  0 8px 24px rgba(0, 0, 0, 0.12),
+                      0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-floating:  0 16px 48px rgba(0, 0, 0, 0.14),
+                      0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-pressed:   inset 0 2px 4px rgba(0, 0, 0, 0.10);
+  --shadow-inner:     inset 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-subtle:    0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-glow:      0 0 0 3px rgba(74, 111, 165, 0.18);
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  --font-heading:  'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body:     'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-accent:   'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.875rem;   /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  1.875rem;   /* 30px */
+  --text-4xl:  2.25rem;    /* 36px */
+  --text-5xl:  3rem;       /* 48px */
+
+  --leading-tight:  1.25;
+  --leading-snug:   1.375;
+  --leading-normal: 1.6;
+  --leading-relaxed:1.75;
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.02em;
+  --tracking-wider:  0.05em;
+
+  /* ── Spacing Scale (4px increments) ──────────────────────────────────── */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
+  --space-3xl: 56px;
+  --space-4xl: 64px;
+  --space-5xl: 80px;
+  --space-6xl: 96px;
+
+  /* ── Border Radius ───────────────────────────────────────────────────── */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-full: 9999px;
+
+  /* ── Transitions ─────────────────────────────────────────────────────── */
+  --duration-fast:   180ms;
+  --duration-normal: 280ms;
+  --duration-slow:   450ms;
+  --ease-out:        cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:     cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-Index Scale ───────────────────────────────────────────────────── */
+  --z-base:     1;
+  --z-dropdown: 10;
+  --z-sticky:   50;
+  --z-navbar:   100;
+  --z-overlay:  200;
+  --z-modal:    300;
+  --z-toast:    400;
+
+  /* ── Container ───────────────────────────────────────────────────────── */
+  --container-max:  1200px;
+  --container-wide: 1400px;
+  --container-pad:  var(--space-lg);
+
+  /* ── Navbar ──────────────────────────────────────────────────────────── */
+  --navbar-height: 64px;
+}
+
+/* ==========================================================================
+   Dark Theme
+   ========================================================================== */
+[data-theme="dark"] {
+  --color-bg:              #17191C;
+  --color-surface:         #22252A;
+  --color-surface-secondary:#2A2D33;
+  --color-text:            #E8E6E1;
+  --color-text-secondary:  #9BA1AD;
+  --color-text-tertiary:   #6B7280;
+  --color-accent:          #5B8AD4;
+  --color-accent-hover:    #6D9AE0;
+  --color-accent-light:    rgba(91, 138, 212, 0.12);
+  --color-accent-subtle:   rgba(91, 138, 212, 0.06);
+  --color-border:          #2F3238;
+  --color-border-strong:   #3D4149;
+  --color-success:         #4CAF6E;
+  --color-success-light:   rgba(76, 175, 110, 0.12);
+  --color-warning:         #E0A63A;
+  --color-warning-light:   rgba(224, 166, 58, 0.12);
+  --color-error:           #E05A4F;
+  --color-error-light:     rgba(224, 90, 79, 0.12);
+  --color-overlay:         rgba(0, 0, 0, 0.60);
+
+  --shadow-raised:    0 2px 8px rgba(0, 0, 0, 0.25),
+                      0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-elevated:  0 8px 24px rgba(0, 0, 0, 0.35),
+                      0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-floating:  0 16px 48px rgba(0, 0, 0, 0.40),
+                      0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-pressed:   inset 0 2px 4px rgba(0, 0, 0, 0.30);
+  --shadow-inner:     inset 0 1px 3px rgba(0, 0, 0, 0.20);
+  --shadow-subtle:    0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-glow:      0 0 0 3px rgba(91, 138, 212, 0.22);
+}
+
+/* ==========================================================================
+   Reduced Motion
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast:   0ms;
+    --duration-normal: 0ms;
+    --duration-slow:   0ms;
+  }
+}

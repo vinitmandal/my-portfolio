@@ -1,0 +1,123 @@
+:root {
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --font-sans: "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-editorial: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+
+  --bg: #eee9df;
+  --surface: #faf8f2;
+  --panel: #f0ece3;
+  --field: #f6f2e9;
+  --text: #202a25;
+  --text-muted: #68716a;
+  --accent: #315846;
+  --accent-light: #46735a;
+  --accent-contrast: #fffdf7;
+  --accent-warm: #b66f4c;
+  --border: rgba(32, 42, 37, 0.13);
+  --surface-wash: rgba(255, 255, 255, 0.38);
+  --glow-soft: rgba(182, 111, 76, 0.12);
+  --accent-glow: rgba(49, 88, 70, 0.12);
+  --accent-shadow: rgba(49, 88, 70, 0.2);
+  --accent-focus: rgba(49, 88, 70, 0.14);
+  --shadow-depth: rgba(33, 38, 32, 0.08);
+  --shadow-inset: inset 1px 1px 0 rgba(255, 255, 255, 0.8);
+  --shadow-card: 0 15px 34px rgba(48, 47, 39, 0.08);
+  --success: #347653;
+  --error: #a53d36;
+  --error-border: rgba(165, 61, 54, 0.3);
+  --error-wash: rgba(165, 61, 54, 0.06);
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #151c19;
+  --surface: #202925;
+  --panel: #1b2420;
+  --field: #18211d;
+  --text: #f0eee7;
+  --text-muted: #b1b8ae;
+  --accent: #9dc0a6;
+  --accent-light: #618c70;
+  --accent-contrast: #111a15;
+  --accent-warm: #e0a17e;
+  --border: rgba(235, 239, 230, 0.13);
+  --surface-wash: rgba(235, 239, 230, 0.035);
+  --glow-soft: rgba(191, 131, 98, 0.13);
+  --accent-glow: rgba(157, 192, 166, 0.1);
+  --accent-shadow: rgba(0, 0, 0, 0.28);
+  --accent-focus: rgba(157, 192, 166, 0.17);
+  --shadow-depth: rgba(0, 0, 0, 0.25);
+  --shadow-inset: inset 1px 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-card: 0 17px 38px rgba(0, 0, 0, 0.22);
+  --success: #8bc39b;
+  --error: #ffaaa0;
+  --error-border: rgba(255, 170, 160, 0.3);
+  --error-wash: rgba(255, 170, 160, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  scroll-padding-top: 85px;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg {
+  display: block;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent-warm);
+  outline-offset: 3px;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
