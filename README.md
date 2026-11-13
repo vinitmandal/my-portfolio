@@ -37,7 +37,8 @@ Portfolio1/
 ### 1. Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/vinitmandal/my-portfolio.git
+cd my-portfolio
 cd Portfolio1
 ```
 
