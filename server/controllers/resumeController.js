@@ -1,41 +1,100 @@
+
 const pool = require('../config/db');
 const path = require('path');
 const fs = require('fs');
 
+const {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} = require('../utils/cloudinaryUpload');
+
 const resolveResumePath = (filePath) => {
   const prefix = '/uploads/resume/';
-  if (typeof filePath !== 'string' || !filePath.startsWith(prefix)) return null;
+
+  if (typeof filePath !== 'string' || !filePath.startsWith(prefix)) {
+    return null;
+  }
+
   const filename = filePath.slice(prefix.length);
-  if (!filename || path.basename(filename) !== filename) return null;
+
+  if (!filename || path.basename(filename) !== filename) {
+    return null;
+  }
+
   return path.join(__dirname, '..', 'uploads', 'resume', filename);
 };
 
-const removeFile = async (filePath) => {
-  const absolutePath = resolveResumePath(filePath);
-  if (!absolutePath) return;
+const getCloudinaryPublicId = (fileUrl) => {
   try {
-    await fs.promises.unlink(absolutePath);
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
+    const parsedUrl = new URL(fileUrl);
+
+    if (parsedUrl.hostname !== 'res.cloudinary.com') return null;
+
+    const segments = parsedUrl.pathname.split('/').filter(Boolean);
+    const uploadIndex = segments.indexOf('upload');
+
+    if (
+      uploadIndex === -1 ||
+      segments[uploadIndex - 1] !== 'raw'
+    ) {
+      return null;
+    }
+
+    let publicIdSegments = segments.slice(uploadIndex + 1);
+
+    if (/^v\d+$/.test(publicIdSegments[0] || '')) {
+      publicIdSegments = publicIdSegments.slice(1);
+    }
+
+    return publicIdSegments.length
+      ? decodeURIComponent(publicIdSegments.join('/'))
+      : null;
+  } catch {
+    return null;
   }
 };
 
-const removeNewUpload = async (file) => {
-  if (!file?.path) return;
-  try {
-    await fs.promises.unlink(file.path);
-  } catch (error) {
-    if (error.code !== 'ENOENT') throw error;
+const removeStoredResume = async (filePath) => {
+  if (typeof filePath !== 'string' || !filePath) return;
+
+  const publicId = getCloudinaryPublicId(filePath);
+
+  if (publicId) {
+    await deleteFromCloudinary(publicId, 'raw');
+    return;
   }
+
+  const absolutePath = resolveResumePath(filePath);
+
+  if (absolutePath) {
+    try {
+      await fs.promises.unlink(absolutePath);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+  }
+};
+
+const getLatestResume = async () => {
+  const [rows] = await pool.execute(
+    'SELECT * FROM resume ORDER BY uploaded_at DESC LIMIT 1'
+  );
+
+  return rows[0] || null;
 };
 
 const getResume = async (_req, res, next) => {
   try {
-    const [resume] = await pool.execute('SELECT * FROM resume ORDER BY uploaded_at DESC LIMIT 1');
-    if (resume.length === 0) {
-      return res.status(404).json({ success: false, message: 'No resume uploaded yet.' });
+    const resume = await getLatestResume();
+
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'No resume uploaded yet.',
+      });
     }
-    res.json({ success: true, data: resume[0] });
+
+    res.json({ success: true, data: resume });
   } catch (error) {
     next(error);
   }
@@ -43,16 +102,29 @@ const getResume = async (_req, res, next) => {
 
 const downloadResume = async (_req, res, next) => {
   try {
-    const [resume] = await pool.execute('SELECT * FROM resume ORDER BY uploaded_at DESC LIMIT 1');
-    if (resume.length === 0) {
-      return res.status(404).json({ success: false, message: 'No resume uploaded yet.' });
+    const resume = await getLatestResume();
+
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'No resume uploaded yet.',
+      });
     }
 
-    const filePath = resolveResumePath(resume[0].file_path);
-    if (!filePath || !fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, message: 'Resume file not found on server.' });
+    if (getCloudinaryPublicId(resume.file_path)) {
+      return res.redirect(302, resume.file_path);
     }
-    res.download(filePath, resume[0].original_name);
+
+    const filePath = resolveResumePath(resume.file_path);
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Resume file not found on server.',
+      });
+    }
+
+    res.download(filePath, resume.original_name);
   } catch (error) {
     next(error);
   }
@@ -60,21 +132,41 @@ const downloadResume = async (_req, res, next) => {
 
 const previewResume = async (_req, res, next) => {
   try {
-    const [resume] = await pool.execute('SELECT * FROM resume ORDER BY uploaded_at DESC LIMIT 1');
-    if (resume.length === 0) {
-      return res.status(404).json({ success: false, message: 'No resume uploaded yet.' });
+    const resume = await getLatestResume();
+
+    if (!resume) {
+      return res.status(404).json({
+        success: false,
+        message: 'No resume uploaded yet.',
+      });
     }
 
-    const filePath = resolveResumePath(resume[0].file_path);
+    if (getCloudinaryPublicId(resume.file_path)) {
+      return res.redirect(302, resume.file_path);
+    }
+
+    const filePath = resolveResumePath(resume.file_path);
+
     if (!filePath || !fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, message: 'Resume file not found on server.' });
+      return res.status(404).json({
+        success: false,
+        message: 'Resume file not found on server.',
+      });
     }
 
-    const configuredOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
+    const configuredOrigin =
+      process.env.CORS_ORIGIN || 'http://localhost:5173';
+
     const frameOrigin = new URL(configuredOrigin).origin;
+
     res.removeHeader('X-Frame-Options');
-    res.setHeader('Content-Security-Policy', `frame-ancestors 'self' ${frameOrigin}`);
+    res.setHeader(
+      'Content-Security-Policy',
+      `frame-ancestors 'self' ${frameOrigin}`
+    );
+
     res.type('application/pdf');
+
     res.sendFile(filePath, (error) => {
       if (error) next(error);
     });
@@ -85,35 +177,66 @@ const previewResume = async (_req, res, next) => {
 
 const uploadResume = async (req, res, next) => {
   if (!req.file) {
-    return res.status(400).json({ success: false, message: 'No resume file provided.' });
+    return res.status(400).json({
+      success: false,
+      message: 'No resume file provided.',
+    });
   }
+
   if (req.file.originalname.length > 255) {
-    await removeNewUpload(req.file);
-    return res.status(400).json({ success: false, message: 'Resume filename must be 255 characters or fewer.' });
+    return res.status(400).json({
+      success: false,
+      message: 'Resume filename must be 255 characters or fewer.',
+    });
   }
 
   let connection;
+  let uploadedResume = null;
+
   try {
-    const filePath = `/uploads/resume/${req.file.filename}`;
+    // Upload PDF to Cloudinary
+    uploadedResume = await uploadToCloudinary(req.file, {
+      folder: 'resume',
+      prefix: 'resume',
+      resourceType: 'raw',
+    });
+
     connection = await pool.getConnection();
     await connection.beginTransaction();
-    const [oldResumes] = await connection.execute('SELECT id, file_path FROM resume FOR UPDATE');
+
+    const [oldResumes] = await connection.execute(
+      'SELECT id, file_path FROM resume FOR UPDATE'
+    );
+
     const [result] = await connection.execute(
       'INSERT INTO resume (file_path, original_name) VALUES (?, ?)',
-      [filePath, req.file.originalname]
+      [uploadedResume.url, req.file.originalname]
     );
-    await connection.execute('DELETE FROM resume WHERE id <> ?', [result.insertId]);
-    const [rows] = await connection.execute('SELECT * FROM resume WHERE id = ?', [result.insertId]);
+
+    await connection.execute(
+      'DELETE FROM resume WHERE id <> ?',
+      [result.insertId]
+    );
+
+    const [rows] = await connection.execute(
+      'SELECT * FROM resume WHERE id = ?',
+      [result.insertId]
+    );
+
     await connection.commit();
 
     let warning = '';
+
     for (const oldResume of oldResumes) {
-      if (oldResume.file_path !== filePath) {
+      if (oldResume.file_path !== uploadedResume.url) {
         try {
-          await removeFile(oldResume.file_path);
+          await removeStoredResume(oldResume.file_path);
         } catch (cleanupError) {
           warning = 'Resume replaced; an older file could not be removed from storage.';
-          console.error('Replaced resume cleanup failed:', cleanupError.message);
+          console.error(
+            'Replaced resume cleanup failed:',
+            cleanupError.message
+          );
         }
       }
     }
@@ -125,16 +248,34 @@ const uploadResume = async (req, res, next) => {
       warning,
     });
   } catch (error) {
-    if (connection) await connection.rollback();
-    try {
-      await removeNewUpload(req.file);
-    } catch (cleanupError) {
-      console.error('Failed resume upload cleanup:', cleanupError.message);
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Resume transaction rollback failed:', rollbackError.message);
+      }
     }
+
+    if (uploadedResume?.publicId) {
+      try {
+        await deleteFromCloudinary(uploadedResume.publicId, 'raw');
+      } catch (cleanupError) {
+        console.error(
+          'New resume cleanup failed:',
+          cleanupError.message
+        );
+      }
+    }
+
     next(error);
   } finally {
     if (connection) connection.release();
   }
 };
 
-module.exports = { getResume, downloadResume, previewResume, uploadResume };
+module.exports = {
+  getResume,
+  downloadResume,
+  previewResume,
+  uploadResume,
+};

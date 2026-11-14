@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
 import ResourceState from '../components/ResourceState';
 import SectionHeader from '../components/SectionHeader';
-import { getApiUrl, portfolioApi } from '../services/api';
+import { getApiUrl, getPublicFileUrl, portfolioApi } from '../services/api';
 import './PortfolioPage.css';
 
 const resourceKeys = ['profile', 'skills', 'education', 'experience', 'projects', 'certifications', 'achievements', 'resume'];
@@ -68,24 +68,17 @@ function ResumeSection({ resource, onRetry }) {
   const resume = resource.data;
   const isPdf = resume?.original_name?.toLowerCase().endsWith('.pdf');
 
-  useEffect(() => () => {
-    if (preview.url) URL.revokeObjectURL(preview.url);
-  }, [preview.url]);
+const openPreview = () => {
+  if (!resume?.file_path) return;
 
-  const openPreview = async () => {
-    setPreview({ status: 'loading', url: '', error: '' });
-    try {
-      const response = await portfolioApi.downloadResume();
-      const url = URL.createObjectURL(response.data);
-      setPreview({ status: 'ready', url, error: '' });
-    } catch (error) {
-      setPreview({
-        status: 'error',
-        url: '',
-        error: error.response?.data?.message || 'The resume preview could not be loaded.',
-      });
-    }
-  };
+  const url = getPublicFileUrl(resume.file_path);
+
+  setPreview({
+    status: 'ready',
+    url,
+    error: '',
+  });
+};
 
   return (
     <section className="portfolio-section resume-section" id="resume">
@@ -306,16 +299,18 @@ export default function PortfolioPage() {
   <span>01—08</span>
 </div>
 
+
 <div className="monogram-art profile-photo-art">
   <img
-  src={new URL(
-  profile.profile_image,
-  getApiUrl('/')
-).origin + profile.profile_image}
-  alt={profile.full_name}
-  onError={(e) => console.error("Image failed to load:", e.currentTarget.src)}
-/>
+    src={new URL(
+      profile.profile_image,
+      getApiUrl('/')
+    ).href}
+    alt={profile.full_name}
+    onError={(e) => console.error("Image failed to load:", e.currentTarget.src)}
+  />
 </div>
+
                 <p className="index-card-name">{profile.full_name}</p>
                 <p className="index-card-role">{profile.title}</p>
                 <div className="index-card-rule" />
@@ -499,27 +494,66 @@ export default function PortfolioPage() {
           </ApiContent>
         </section>
 
-        <section className="portfolio-section certifications-section" id="certifications">
-          <div className="section-index">06 <span>/</span> Certifications</div>
-          <SectionHeader eyebrow="Verified records" title="Certifications and credentials." description="Only records returned by the portfolio API are shown." />
-          <ApiContent
-            resource={resources.certifications}
-            isEmpty={(data) => !data?.length}
-            emptyMessage="No verified certifications have been added yet."
-            onRetry={retry}
-          >
-            <div className="certifications-grid">
-              {(resources.certifications.data || EMPTY_ARRAY).map((item) => (
-                <article className="certification-card" key={item.id || `${item.name}-${item.issuing_organization}`}>
-                  <p>{item.issuing_organization}</p>
-                  <h3>{item.name}</h3>
-                  {item.completion_date ? <time dateTime={item.completion_date}>{formatYear(item.completion_date)}</time> : null}
-                  {item.credential_url ? <a href={item.credential_url} target="_blank" rel="noreferrer">View credential <ExternalLink size={15} /></a> : null}
-                </article>
-              ))}
-            </div>
-          </ApiContent>
-        </section>
+
+
+<section className="portfolio-section certifications-section" id="certifications">
+  <div className="section-index">06 <span>/</span> Certifications</div>
+
+  <SectionHeader
+    eyebrow="Verified records"
+    title="Certifications and credentials."
+    description="Only records returned by the portfolio API are shown."
+  />
+
+  <ApiContent
+    resource={resources.certifications}
+    isEmpty={(data) => !data?.length}
+    emptyMessage="No verified certifications have been added yet."
+    onRetry={retry}
+  >
+    <div className="certifications-grid">
+      {(resources.certifications.data || EMPTY_ARRAY).map((item) => (
+        <article
+          className="certification-card"
+          key={item.id || `${item.name}-${item.issuing_organization}`}
+        >
+          <p>{item.issuing_organization}</p>
+          <h3>{item.name}</h3>
+
+          {item.completion_date ? (
+            <time dateTime={item.completion_date}>
+              {formatYear(item.completion_date)}
+            </time>
+          ) : null}
+
+          <div className="certification-actions">
+            {item.image_url && (
+              <a
+                className="certification-action primary"
+                href={getPublicFileUrl(item.image_url)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View Certificate <ExternalLink size={14} />
+              </a>
+            )}
+
+            {item.credential_url && (
+              <a
+                className="certification-action secondary"
+                href={item.credential_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Credential <ExternalLink size={14} />
+              </a>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
+  </ApiContent>
+</section>
 
         <section className="portfolio-section achievements-section" id="achievements">
           <div className="section-index">07 <span>/</span> Achievements</div>
