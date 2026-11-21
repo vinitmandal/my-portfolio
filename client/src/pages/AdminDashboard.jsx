@@ -45,6 +45,18 @@ const navigation = [
   { id: 'resume', label: 'Resume', icon: FileText },
 ];
 
+function getSocialLinkValueType(platform) {
+  const normalized = String(platform || '').trim().toLowerCase();
+  const contactLabel = normalized.startsWith('contact:')
+    ? normalized.slice('contact:'.length).trim()
+    : normalized;
+
+  if (contactLabel === 'email') return 'email';
+  if (['phone', 'telephone', 'mobile', 'mobile phone', 'phone number'].includes(contactLabel)) return 'tel';
+  if (normalized.startsWith('contact:')) return 'text';
+  return 'url';
+}
+
 const resourceConfig = {
   profile: {
     title: 'Profile',
@@ -185,14 +197,14 @@ const resourceConfig = {
     title: 'Social links',
     singular: 'social link',
     fields: [
-      { name: 'platform', label: 'Platform', required: true, maxLength: 50 },
-      { name: 'url', label: 'URL', type: 'url', required: true, maxLength: 500 },
+      { name: 'platform', label: 'Platform / contact type', required: true, maxLength: 50, hint: 'Use Email, Phone, or Contact: <label> for a plain-text contact detail.' },
+      { name: 'url', label: 'URL or contact detail', type: 'url', required: true, maxLength: 500, hint: 'Social links require an HTTP(S) URL. Email and Phone use their matching formats.' },
       { name: 'icon_name', label: 'Icon name', maxLength: 50 },
       { name: 'display_order', label: 'Display order', type: 'number', min: 0 },
     ],
     columns: [
       { name: 'platform', label: 'Platform' },
-      { name: 'url', label: 'URL' },
+      { name: 'url', label: 'URL / contact value' },
       { name: 'display_order', label: 'Order' },
     ],
   },
@@ -384,17 +396,33 @@ function RecordManager({ resource, records, saving, onSave, onDelete }) {
                       </select>
                     ) : (
                       <input
-                        autoComplete="off"
+                        autoComplete={resource === 'socialLinks' && field.name === 'url'
+                          ? getSocialLinkValueType(form.platform) === 'email' ? 'email'
+                            : getSocialLinkValueType(form.platform) === 'tel' ? 'tel' : 'off'
+                          : 'off'}
+                        list={resource === 'socialLinks' && field.name === 'platform' ? 'social-link-platform-options' : undefined}
                         max={field.max}
                         maxLength={field.maxLength}
                         min={field.min}
                         onChange={(event) => handleFieldChange(field, event.target.value)}
                         required={field.required}
                         step={field.step}
-                        type={field.type === 'tags' ? 'text' : field.type || 'text'}
+                        type={resource === 'socialLinks' && field.name === 'url'
+                          ? getSocialLinkValueType(form.platform)
+                          : field.type === 'tags' ? 'text' : field.type || 'text'}
                         value={form[field.name] ?? ''}
                       />
                     )}
+                    {resource === 'socialLinks' && field.name === 'platform' ? (
+                      <datalist id="social-link-platform-options">
+                        <option value="GitHub" />
+                        <option value="LinkedIn" />
+                        <option value="Email" />
+                        <option value="Phone" />
+                        <option value="Contact: Location" />
+                        <option value="Contact: Other" />
+                      </datalist>
+                    ) : null}
                     {field.hint ? <small>{field.hint}</small> : null}
                   </>
                 )}

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Download, ExternalLink, FileText, MapPin, Search, Send, X } from 'lucide-react';
+import { ArrowRight, Check, Copy, Download, ExternalLink, FileText, LoaderCircle, Mail, MapPin, MessageCircle, Phone, Search, Send, X } from 'lucide-react';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
 import ResourceState from '../components/ResourceState';
@@ -47,6 +47,38 @@ function experiencePeriod(item) {
   const end = item.is_current ? 'Present' : formatYear(item.end_date);
   if (start && end) return `${start} — ${end}`;
   return start || end;
+}
+
+function getSocialLinkKind(platform) {
+  const normalized = String(platform || '').trim().toLowerCase();
+  const isContact = normalized.startsWith('contact:');
+  const contactLabel = isContact ? normalized.slice('contact:'.length).trim() : normalized;
+
+  if (contactLabel === 'email') return 'email';
+  if (['phone', 'telephone', 'mobile', 'mobile phone', 'phone number'].includes(contactLabel)) return 'phone';
+  return isContact ? 'contact' : 'social';
+}
+
+function getDirectContact(link) {
+  const kind = getSocialLinkKind(link.platform);
+  if (kind === 'social') return null;
+
+  const platform = String(link.platform || '').trim();
+  const label = platform.toLowerCase().startsWith('contact:')
+    ? platform.slice('contact:'.length).trim()
+    : platform;
+  const isLocation = /address|location/i.test(label);
+
+  return {
+    kind,
+    label: label || 'Contact',
+    icon: kind === 'email' ? Mail : kind === 'phone' ? Phone : isLocation ? MapPin : MessageCircle,
+    href: kind === 'email'
+      ? `mailto:${link.url}`
+      : kind === 'phone'
+        ? `tel:${String(link.url).replace(/[^\d+]/g, '')}`
+        : null,
+  };
 }
 
 function validateContact(form) {
@@ -144,9 +176,15 @@ export default function PortfolioPage() {
   const [projectSearch, setProjectSearch] = useState('');
   const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [contactState, setContactState] = useState({ status: 'idle', message: '' });
+  const contactSubmissionInProgress = useRef(false);
+  const [contactCopyState, setContactCopyState] = useState({ key: '', status: 'idle' });
   const profile = resources.profile.data?.profile || null;
   console.log("Profile image:", profile?.profile_image);
   const socialLinks = resources.profile.data?.socialLinks || EMPTY_ARRAY;
+  const directContacts = socialLinks
+    .map((link) => ({ link, contact: getDirectContact(link) }))
+    .filter(({ contact }) => contact);
+  const verifiedSocialLinks = socialLinks.filter((link) => getSocialLinkKind(link.platform) === 'social');
   const skills = resources.skills.data || {};
   const projects = resources.projects.data || EMPTY_ARRAY;
 
@@ -205,6 +243,20 @@ export default function PortfolioPage() {
     setResources(createInitialResources());
     setAttempt((value) => value + 1);
   };
+
+  const handleCopyContact = async (value, key) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard access is unavailable in this browser context.');
+      }
+      await navigator.clipboard.writeText(value);
+      setContactCopyState({ key, status: 'copied' });
+    } catch (error) {
+      console.error('Unable to copy the public contact detail.', error);
+      setContactCopyState({ key, status: 'error' });
+    }
+  };
+
   const categories = useMemo(() => (
     ['all', ...new Set(projects.map((project) => project.status || 'unspecified'))]
   ), [projects]);
@@ -225,13 +277,16 @@ export default function PortfolioPage() {
 
   const handleContactSubmit = async (event) => {
     event.preventDefault();
+    if (contactSubmissionInProgress.current) return;
+
     const validationError = validateContact(contactForm);
     if (validationError) {
       setContactState({ status: 'error', message: validationError });
       return;
     }
 
-    setContactState({ status: 'sending', message: '' });
+    contactSubmissionInProgress.current = true;
+    setContactState({ status: 'sending', message: 'Sending your message…' });
     try {
       const result = await portfolioApi.submitContact({
         name: contactForm.name.trim(),
@@ -242,10 +297,16 @@ export default function PortfolioPage() {
       setContactState({ status: 'success', message: result.message || 'Your message was sent.' });
       setContactForm({ name: '', email: '', subject: '', message: '' });
     } catch (error) {
+      const validationErrors = error.response?.data?.errors;
+      const validationMessage = Array.isArray(validationErrors)
+        ? validationErrors.map((item) => item.message).filter(Boolean).join(' ')
+        : '';
       setContactState({
         status: 'error',
-        message: error.response?.data?.message || 'Your message could not be sent. Please try again.',
+        message: validationMessage || error.response?.data?.message || 'Your message could not be sent. Please try again.',
       });
+    } finally {
+      contactSubmissionInProgress.current = false;
     }
   };
 
@@ -585,22 +646,60 @@ export default function PortfolioPage() {
           <div className="section-index">09 <span>/</span> Contact</div>
           <div className="contact-layout">
             <div className="contact-copy">
-              <SectionHeader eyebrow="Open channel" title="Have a project in mind?" description="Send a message through the portfolio contact endpoint." />
+              <SectionHeader eyebrow="Open channel" title="Have a project in mind?" description="Have an idea, opportunity, or question? I’d be glad to hear from you." />
               {profile?.subtitle ? <p className="contact-location"><MapPin size={16} /> {profile.subtitle}</p> : null}
-              <p className="contact-note">Messages go directly to the portfolio backend. Only contact links returned by the API are shown.</p>
-              {socialLinks.length ? (
-                <ul className="verified-social-links" aria-label="Verified social links">
-                  {socialLinks.map((link) => (
-                    <li key={`${link.platform}-${link.url}`}>
-                      <a href={link.url} target="_blank" rel="noreferrer">
-                        {link.platform} <ExternalLink size={14} />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+              <p className="contact-note">Use the form or reach out through the links below.</p>
+              {verifiedSocialLinks.length ? (
+                <div className="contact-channel-group">
+                  <p className="contact-channel-label">Social links</p>
+                  <ul className="verified-social-links" aria-label="Social links">
+                    {verifiedSocialLinks.map((link) => (
+                      <li key={`${link.platform}-${link.url}`}>
+                        <a href={link.url} target="_blank" rel="noreferrer">
+                          {link.platform} <ExternalLink size={14} />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {directContacts.length ? (
+                <div className="contact-channel-group">
+                  <p className="contact-channel-label">Direct contact</p>
+                  <div className="direct-contact-list">
+                    {directContacts.map(({ link, contact }) => {
+                      const ContactIcon = contact.icon;
+                      const contactKey = `${link.id || link.platform}-${link.url}`;
+                      const copyStatus = contactCopyState.key === contactKey ? contactCopyState.status : 'idle';
+
+                      return (
+                        <div className="direct-contact-box" key={contactKey}>
+                          <div className="direct-contact-main">
+                            <ContactIcon size={16} aria-hidden="true" />
+                            {contact.href
+                              ? <a className="direct-contact-value" href={contact.href}>{link.url}</a>
+                              : <span className="direct-contact-value">{link.url}</span>}
+                          </div>
+                          <div className="direct-contact-actions">
+                            <button
+                              className="direct-contact-copy"
+                              type="button"
+                              onClick={() => handleCopyContact(link.url, contactKey)}
+                              aria-label={`Copy ${contact.label}: ${link.url}`}
+                            >
+                              {copyStatus === 'copied' ? <Check size={16} /> : <Copy size={16} />}
+                            </button>
+                            {copyStatus === 'copied' ? <span className="direct-contact-feedback" role="status">Copied!</span> : null}
+                            {copyStatus === 'error' ? <span className="direct-contact-feedback is-error" role="alert">Copy failed</span> : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               ) : null}
             </div>
-            <form className="contact-form" onSubmit={handleContactSubmit} noValidate>
+            <form className="contact-form" onSubmit={handleContactSubmit} noValidate aria-busy={contactState.status === 'sending'}>
               <div className="contact-field-row">
                 <label>
                   <span>Name</span>
@@ -620,11 +719,11 @@ export default function PortfolioPage() {
                 <textarea name="message" rows={5} maxLength={5000} required value={contactForm.message} onChange={(event) => setContactForm((form) => ({ ...form, message: event.target.value }))} />
               </label>
               {contactState.message ? (
-                <p className={`contact-feedback ${contactState.status}`} role={contactState.status === 'error' ? 'alert' : 'status'}>{contactState.message}</p>
+                <p className={`contact-feedback ${contactState.status}`} role={contactState.status === 'error' ? 'alert' : 'status'} aria-live={contactState.status === 'error' ? 'assertive' : 'polite'}>{contactState.message}</p>
               ) : null}
               <button className="button button-primary contact-submit" type="submit" disabled={contactState.status === 'sending'}>
                 {contactState.status === 'sending' ? 'Sending…' : 'Send message'}
-                {contactState.status === 'sending' ? null : <Send size={16} />}
+                {contactState.status === 'sending' ? <LoaderCircle className="contact-spinner" size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
               </button>
             </form>
           </div>

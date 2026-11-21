@@ -118,9 +118,28 @@ const achievementRules = [
   body('display_order').optional().isInt({ min: 0 }),
 ];
 
+const getSocialLinkKind = (_value, { req }) => {
+  const platform = typeof req.body.platform === 'string'
+    ? req.body.platform.trim().toLowerCase()
+    : '';
+  const contactLabel = platform.startsWith('contact:')
+    ? platform.slice('contact:'.length).trim()
+    : platform;
+
+  if (contactLabel === 'email') return 'email';
+  if (['phone', 'telephone', 'mobile', 'mobile phone', 'phone number'].includes(contactLabel)) return 'phone';
+  return platform.startsWith('contact:') ? 'contact' : 'social';
+};
+
 const socialLinkRules = [
   body('platform').trim().notEmpty().withMessage('Platform is required.').isLength({ max: 50 }),
-  body('url').trim().isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('A valid HTTP or HTTPS URL is required.').isLength({ max: 500 }),
+  body('url').trim().notEmpty().withMessage('A URL or contact detail is required.').bail().isLength({ max: 500 }).withMessage('URL or contact detail must be under 500 characters.'),
+  body('url').if((value, context) => getSocialLinkKind(value, context) === 'email').isEmail().withMessage('A valid email address is required for the Email contact type.'),
+  body('url').if((value, context) => getSocialLinkKind(value, context) === 'phone').isMobilePhone('any').withMessage('A valid phone number is required for the Phone contact type.'),
+  body('url')
+    .if((value, context) => getSocialLinkKind(value, context) === 'social')
+    .isURL({ protocols: ['http', 'https'], require_protocol: true })
+    .withMessage('A valid HTTP or HTTPS URL is required for this platform.'),
   body('icon_name').optional().trim().isLength({ max: 50 }),
   body('display_order').optional().isInt({ min: 0 }).withMessage('Display order must be a non-negative integer.'),
 ];
