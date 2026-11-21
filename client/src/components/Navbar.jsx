@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Moon, SunMedium, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,8 +18,34 @@ const navLinks = [
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
 
   const closeMenu = () => setMenuOpen(false);
+
+  useEffect(() => {
+    const sections = navLinks
+      .map(([, id]) => document.getElementById(id))
+      .filter(Boolean);
+
+    if (!('IntersectionObserver' in window) || !sections.length) return undefined;
+
+    const observer = new IntersectionObserver(() => {
+      const bandTop = window.innerHeight * 0.25;
+      const bandBottom = window.innerHeight * 0.35;
+      const currentSection = sections.find((section) => {
+        const bounds = section.getBoundingClientRect();
+        return bounds.top <= bandBottom && bounds.bottom >= bandTop;
+      });
+
+      setActiveSection(currentSection?.id || '');
+    }, {
+      rootMargin: '-25% 0px -65% 0px',
+      threshold: 0,
+    });
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <header className="portfolio-header">
@@ -35,7 +61,13 @@ export default function Navbar() {
           aria-label="Main navigation"
         >
           {navLinks.map(([label, id], index) => (
-            <a key={id} href={`/#${id}`} onClick={closeMenu}>
+            <a
+              key={id}
+              href={`#${id}`}
+              className={activeSection === id ? 'is-active' : undefined}
+              aria-current={activeSection === id ? 'location' : undefined}
+              onClick={closeMenu}
+            >
               <span className="nav-index">0{index + 1}</span>
               {label}
             </a>

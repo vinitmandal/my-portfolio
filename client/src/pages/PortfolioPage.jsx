@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Check, Copy, Download, ExternalLink, FileText, LoaderCircle, Mail, MapPin, MessageCircle, Phone, Search, Send, X } from 'lucide-react';
+import { ArrowRight, ArrowUp, Check, Copy, Download, ExternalLink, FileText, LoaderCircle, Mail, MapPin, MessageCircle, Minus, Phone, Plus, Search, Send, X } from 'lucide-react';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
 import ResourceState from '../components/ResourceState';
@@ -178,6 +178,11 @@ export default function PortfolioPage() {
   const [contactState, setContactState] = useState({ status: 'idle', message: '' });
   const contactSubmissionInProgress = useRef(false);
   const [contactCopyState, setContactCopyState] = useState({ key: '', status: 'idle' });
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [expandedAchievement, setExpandedAchievement] = useState(null);
+  const [hoveredAchievement, setHoveredAchievement] = useState(null);
+  const [expandedExperience, setExpandedExperience] = useState(null);
+  const [hoveredExperience, setHoveredExperience] = useState(null);
   const profile = resources.profile.data?.profile || null;
   console.log("Profile image:", profile?.profile_image);
   const socialLinks = resources.profile.data?.socialLinks || EMPTY_ARRAY;
@@ -187,6 +192,42 @@ export default function PortfolioPage() {
   const verifiedSocialLinks = socialLinks.filter((link) => getSocialLinkKind(link.platform) === 'social');
   const skills = resources.skills.data || {};
   const projects = resources.projects.data || EMPTY_ARRAY;
+
+  useEffect(() => {
+    if (
+      !('IntersectionObserver' in window)
+      || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    ) return undefined;
+
+    const sections = document.querySelectorAll('.portfolio-site .portfolio-section');
+    const observer = new IntersectionObserver((entries, currentObserver) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-revealed');
+        currentObserver.unobserve(entry.target);
+      });
+    }, {
+      rootMargin: '0px 0px -6% 0px',
+      threshold: 0.06,
+    });
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let wasVisible = false;
+    const updateVisibility = () => {
+      const isVisible = window.scrollY > 440;
+      if (isVisible === wasVisible) return;
+      wasVisible = isVisible;
+      setShowBackToTop(isVisible);
+    };
+
+    updateVisibility();
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+    return () => window.removeEventListener('scroll', updateVisibility);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -308,6 +349,16 @@ export default function PortfolioPage() {
     } finally {
       contactSubmissionInProgress.current = false;
     }
+  };
+
+  const scrollToTop = () => {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+  };
+
+  const toggleExperience = (key) => {
+    setHoveredExperience(null);
+    setExpandedExperience((current) => (current === key ? null : key));
   };
 
   const skillCount = Object.values(skills).reduce((total, items) => total + (Array.isArray(items) ? items.length : 0), 0);
@@ -473,17 +524,61 @@ export default function PortfolioPage() {
             onRetry={retry}
           >
             <div className="experience-grid">
-              {(resources.experience.data || EMPTY_ARRAY).map((item, index) => (
-                <article className="experience-card" key={item.id || `${item.title}-${item.organization}`}>
-                  <div className="experience-card-top">
-                    <span className="record-index">0{index + 1} / {item.type === 'internship' ? 'Internship' : 'Project experience'}</span>
-                    {experiencePeriod(item) ? <span className="record-period">{experiencePeriod(item)}</span> : null}
-                  </div>
-                  <h3>{item.title}</h3>
-                  <p className="experience-organization">{item.organization}</p>
-                  {item.description ? <p className="experience-description">{item.description}</p> : null}
-                </article>
-              ))}
+              {(resources.experience.data || EMPTY_ARRAY).map((item, index) => {
+                const hasDescription = typeof item.description === 'string' && Boolean(item.description.trim());
+                const experienceKey = item.id || `${item.title}-${item.organization || index}`;
+                const activeExperience = hoveredExperience ?? expandedExperience;
+                const isExpanded = activeExperience === experienceKey;
+                const descriptionId = `experience-description-${index}`;
+
+                return (
+                  <article
+                    className={`experience-card${hasDescription ? ' has-description' : ''}`}
+                    key={experienceKey}
+                    role={hasDescription ? 'button' : undefined}
+                    tabIndex={hasDescription ? 0 : undefined}
+                    aria-expanded={hasDescription ? isExpanded : undefined}
+                    aria-controls={hasDescription ? descriptionId : undefined}
+                    onPointerEnter={(event) => {
+                      if (hasDescription && event.pointerType !== 'touch') {
+                        setHoveredExperience(experienceKey);
+                      }
+                    }}
+                    onPointerLeave={(event) => {
+                      if (hasDescription && event.pointerType !== 'touch') {
+                        setHoveredExperience((current) => (
+                          current === experienceKey ? null : current
+                        ));
+                      }
+                    }}
+                    onClick={hasDescription ? () => toggleExperience(experienceKey) : undefined}
+                    onKeyDown={hasDescription ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggleExperience(experienceKey);
+                      }
+                    } : undefined}
+                  >
+                    <div className="experience-card-top">
+                      <span className="record-index">0{index + 1} / {item.type === 'internship' ? 'Internship' : 'Project experience'}</span>
+                      {experiencePeriod(item) ? <span className="record-period">{experiencePeriod(item)}</span> : null}
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p className="experience-organization">{item.organization}</p>
+                    {hasDescription ? (
+                      <div
+                        className={`experience-description-panel${isExpanded ? ' is-visible' : ''}`}
+                        id={descriptionId}
+                        aria-hidden={!isExpanded}
+                      >
+                        <div className="experience-description-inner">
+                          <p className="experience-description">{item.description}</p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </div>
           </ApiContent>
         </section>
@@ -626,16 +721,78 @@ export default function PortfolioPage() {
             onRetry={retry}
           >
             <ol className="achievement-list">
-              {(resources.achievements.data || EMPTY_ARRAY).map((item, index) => (
-                <li key={item.id || `${item.title}-${item.organization || index}`}>
-                  <span className="achievement-number">0{index + 1}</span>
-                  <div>
-                    <h3>{item.title}{item.organization ? <span> / {item.organization}</span> : null}</h3>
-                    {item.description ? <p>{item.description}</p> : null}
-                  </div>
-                  {item.date ? <time dateTime={item.date}>{formatYear(item.date)}</time> : null}
-                </li>
-              ))}
+              {(resources.achievements.data || EMPTY_ARRAY).map((item, index) => {
+                const hasDescription = typeof item.description === 'string' && Boolean(item.description.trim());
+                const achievementKey = item.id || `${item.title}-${item.organization || index}`;
+                const isExpanded = hoveredAchievement === achievementKey || expandedAchievement === achievementKey;
+
+                return (
+                  <li
+                    className={hasDescription ? 'is-expandable' : undefined}
+                    key={achievementKey}
+                    onPointerEnter={(event) => {
+                      if (hasDescription && event.pointerType !== 'touch') {
+                        setHoveredAchievement(achievementKey);
+                      }
+                    }}
+                    onPointerLeave={(event) => {
+                      if (hasDescription && event.pointerType !== 'touch') {
+                        setHoveredAchievement((current) => (
+                          current === achievementKey ? null : current
+                        ));
+                      }
+                    }}
+                  >
+                    {hasDescription ? (
+                      <>
+                        <button
+                          className="achievement-toggle"
+                          type="button"
+                          aria-expanded={isExpanded}
+                          aria-controls={`achievement-description-${index}`}
+                          onClick={() => {
+                            setHoveredAchievement(null);
+                            setExpandedAchievement((current) => (
+                              current === achievementKey ? null : achievementKey
+                            ));
+                          }}
+                        >
+                          <span className="achievement-number">0{index + 1}</span>
+                          <span className="achievement-copy">
+                            <span className="achievement-heading" role="heading" aria-level={3}>
+                              {item.title}
+                              {item.organization ? <span className="achievement-organization"> / {item.organization}</span> : null}
+                            </span>
+                            <span className="achievement-expand-icon" aria-hidden="true">
+                              {isExpanded ? <Minus size={16} /> : <Plus size={16} />}
+                            </span>
+                          </span>
+                          {item.date ? <time dateTime={item.date}>{formatYear(item.date)}</time> : null}
+                        </button>
+                        <div
+                          className={`achievement-description${isExpanded ? ' is-expanded' : ''}`}
+                          id={`achievement-description-${index}`}
+                          aria-hidden={!isExpanded}
+                        >
+                          <div className="achievement-description-inner">
+                            <p>{item.description}</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="achievement-number">0{index + 1}</span>
+                        <div>
+                          <h3>
+                            {item.title}{item.organization ? <span> / {item.organization}</span> : null}
+                          </h3>
+                        </div>
+                        {item.date ? <time dateTime={item.date}>{formatYear(item.date)}</time> : null}
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ol>
           </ApiContent>
         </section>
@@ -730,6 +887,11 @@ export default function PortfolioPage() {
         </section>
       </main>
       <Footer fullName={profile?.full_name || 'Vinit Kumar Mandal'} />
+      {showBackToTop ? (
+        <button className="back-to-top" type="button" onClick={scrollToTop} aria-label="Back to top" title="Back to top">
+          <ArrowUp size={18} aria-hidden="true" />
+        </button>
+      ) : null}
     </div>
   );
 }

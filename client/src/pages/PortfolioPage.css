@@ -87,7 +87,8 @@
 }
 
 .portfolio-nav a:hover,
-.portfolio-nav a:focus-visible {
+.portfolio-nav a:focus-visible,
+.portfolio-nav a.is-active {
   color: var(--accent);
 }
 
@@ -232,11 +233,53 @@
   border-radius: 15px;
   font-size: 0.83rem;
   font-weight: 750;
-  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 
 .portfolio-site .button:hover {
   transform: translateY(-2px);
+}
+
+.portfolio-site .button:active {
+  transform: translateY(0);
+}
+
+.portfolio-site .button:focus-visible,
+.project-external-links a:focus-visible,
+.back-to-top:focus-visible {
+  border-color: var(--accent);
+}
+
+.project-card-footer > a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.back-to-top {
+  position: fixed;
+  right: clamp(16px, 3vw, 32px);
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 15;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--surface), var(--panel));
+  box-shadow: var(--shadow-inset), var(--shadow-card);
+  color: var(--accent);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.back-to-top:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-inset), 0 12px 24px var(--shadow-depth);
+}
+
+.back-to-top:active {
+  transform: translateY(0);
 }
 
 .button-primary {
@@ -614,6 +657,15 @@
   line-height: 1.3;
 }
 
+.skill-group li {
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.skill-group li:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: var(--surface-wash);
+}
+
 .education-list {
   border-top: 1px solid var(--border);
 }
@@ -698,6 +750,14 @@
   transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
+.experience-card.has-description {
+  cursor: pointer;
+}
+
+.experience-card.has-description:focus-visible {
+  outline-offset: 3px;
+}
+
 .experience-card:hover,
 .project-card:hover,
 .certification-card:hover {
@@ -742,6 +802,23 @@
   color: var(--text-muted);
   font-size: 0.86rem;
   line-height: 1.7;
+}
+
+.experience-description-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 250ms ease, opacity 250ms ease;
+}
+
+.experience-description-panel.is-visible {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.experience-description-inner {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .projects-heading {
@@ -842,7 +919,11 @@
   min-width: 0;
   flex-direction: column;
   padding: clamp(21px, 3vw, 34px);
-  transition: transform 190ms ease, box-shadow 190ms ease;
+  transition: transform 190ms ease, box-shadow 190ms ease, border-color 190ms ease;
+}
+
+.project-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
 }
 
 .project-card-top {
@@ -953,6 +1034,7 @@
   color: var(--accent);
   font-size: 0.75rem;
   font-weight: 800;
+  transition: color 160ms ease, transform 160ms ease;
 }
 
 .project-external-links {
@@ -969,10 +1051,23 @@
   border-radius: 11px;
   background: var(--surface);
   color: var(--text-muted);
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.project-card-footer > a:hover,
+.project-external-links a:hover {
+  transform: translateY(-1px);
+  color: var(--accent);
 }
 
 .project-external-links a:hover {
-  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface-wash);
+}
+
+.project-card-footer > a:active,
+.project-external-links a:active {
+  transform: translateY(0);
 }
 
 .certifications-grid {
@@ -1021,6 +1116,94 @@
   align-items: center;
   padding: 18px 10px;
   border-bottom: 1px solid var(--border);
+  transition: background-color 230ms ease, transform 230ms ease;
+}
+
+.achievement-list li:hover,
+.achievement-list li:focus-within {
+  transform: translateY(-2px);
+  background: var(--panel);
+}
+
+.achievement-list li.is-expandable {
+  display: block;
+  padding: 0;
+}
+
+.achievement-toggle {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 55px minmax(0, 1fr) 115px;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.achievement-toggle:focus-visible {
+  outline-offset: -3px;
+}
+
+.achievement-copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.achievement-heading {
+  min-width: 0;
+  font-family: var(--font-editorial);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.achievement-organization {
+  color: var(--text-muted);
+}
+
+.achievement-expand-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--accent-warm);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.achievement-toggle[aria-expanded='true'] .achievement-expand-icon,
+.achievement-toggle:focus-visible .achievement-expand-icon {
+  opacity: 1;
+}
+
+.achievement-description {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 250ms ease, opacity 250ms ease;
+}
+
+.achievement-description.is-expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.achievement-description-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.achievement-description p {
+  margin: 0 !important;
+  padding: 0 10px 18px 85px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.7;
 }
 
 .achievement-list h3 {
@@ -1653,6 +1836,15 @@ a.direct-contact-value:hover {
   to { transform: rotate(360deg); }
 }
 
+@keyframes portfolio-section-reveal {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.portfolio-section.is-revealed {
+  animation: portfolio-section-reveal 480ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
 @media (max-width: 1180px) {
   .portfolio-nav {
     display: none;
@@ -1781,6 +1973,19 @@ a.direct-contact-value:hover {
     gap: 12px;
   }
 
+  .achievement-toggle {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .achievement-toggle time {
+    grid-column: 2;
+  }
+
+  .achievement-description p {
+    padding-left: 58px;
+  }
+
   .achievement-list time {
     grid-column: 2;
     text-align: left;
@@ -1885,5 +2090,18 @@ a.direct-contact-value:hover {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .portfolio-section.is-revealed {
+    animation: none;
+  }
+
+  .achievement-list li {
+    transform: none;
+    transition: none;
+  }
+
+  .achievement-description {
+    transition: none;
   }
 }
